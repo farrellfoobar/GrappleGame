@@ -41,6 +41,7 @@ var grapple_rest_length: float = 0
 var grapple_extension: float   = 0
 var pull_vector: Vector3
 var tension_force: Vector3
+var mesh: ImmediateMesh = ImmediateMesh.new()
 func impart_velocity_from_grapple(delta: float) -> void:
 	if(is_grappled):
 		pull_vector = get_grapple_path().normalized()
@@ -52,6 +53,7 @@ func impart_velocity_from_grapple(delta: float) -> void:
 			velocity += tension_force * delta * grapple_extension
 			
 	if Input.is_action_just_pressed("grapple"):
+		line(player.global_position, get_node("grapple_target").global_position)
 		grapple_rest_length = get_grapple_path().length()
 		is_grappled = true
 		
@@ -81,3 +83,21 @@ func impart_cardinal_movement():
 	elif(!is_grappled && is_on_floor()):
 		velocity.x = move_toward(velocity.x, 0, SPEED)
 		velocity.z = move_toward(velocity.z, 0, SPEED)
+
+func line(pos1: Vector3, pos2: Vector3, color = Color.RED, persist_ms = 0):
+	var mesh_instance := MeshInstance3D.new()
+	var immediate_mesh := ImmediateMesh.new()
+	var material := ORMMaterial3D.new()
+
+	mesh_instance.mesh = immediate_mesh
+	mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+	immediate_mesh.surface_begin(Mesh.PRIMITIVE_LINES, material)
+	immediate_mesh.surface_add_vertex(pos1)
+	immediate_mesh.surface_add_vertex(pos2)
+	immediate_mesh.surface_end()
+
+	get_tree().get_root().add_child(mesh_instance)
+
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.albedo_color = color
