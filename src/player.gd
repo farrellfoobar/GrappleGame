@@ -1,8 +1,8 @@
-extends CharacterBody3D
+extends RigidBody3D
 
 
 const SPEED = 5.0
-const JUMP_VELOCITY = 40
+const JUMP_VELOCITY = 4
 const SENSITIVITY = 0.01
 
 var player: Node3D
@@ -13,10 +13,10 @@ func _enter_tree() -> void:
 
 func _physics_process(delta: float) -> void:
 	impart_gravity(delta)
-	do_look_direction_change()
-	impart_velocity_from_inputs()
+	#do_look_direction_change()
+	impart_velocity_from_inputs(delta)
 	impart_velocity_from_grapple(delta)
-	move_and_slide() # tell godot to handle the physics
+	#move_and_slide() # tell godot to handle the physics
 
 var mouse_x: int      = 0
 var mouse_last_x: int = 0
@@ -32,9 +32,9 @@ func do_look_direction_change() -> void:
 	player.rotate(Vector3(0, 1, 0), mouse_x_delta*SENSITIVITY)
 	player.rotate_object_local(Vector3(1, 0, 0), mouse_y_delta*SENSITIVITY)
 
-func impart_velocity_from_inputs() -> void:
+func impart_velocity_from_inputs(delta: float) -> void:
 	impart_jump()
-	impart_cardinal_movement()
+	impart_cardinal_movement(delta)
 
 var is_grappled: bool          = false
 var grapple_rest_length: float = 0
@@ -50,7 +50,7 @@ func impart_velocity_from_grapple(delta: float) -> void:
 			tension_force = get_grapple_path() * (get_gravity().length()/get_grapple_path().length())
 			tension_force = tension_force * (1 + sin(pull_vector.angle_to(get_gravity())))
 			#print("t, e: ", tension_force.y, ", ", grapple_extension, ", ", grapple_rest_length)
-			velocity += tension_force * delta * grapple_extension
+			apply_impulse(tension_force * delta * grapple_extension)
 			
 	if Input.is_action_just_pressed("grapple"):
 		line(player.global_position, get_node("grapple_target").global_position)
@@ -66,23 +66,38 @@ func get_grapple_path() -> Vector3:
 	return grapple_target - player.global_position
 		
 func impart_gravity(delta: float):
-	if not is_on_floor():
-		velocity += get_gravity() * delta
+	apply_impulse(get_gravity())
 		
 func impart_jump():
-	if Input.is_action_just_pressed("ui_accept") and is_on_floor():
-		velocity.y += JUMP_VELOCITY
+	if Input.is_action_just_pressed("ui_accept"): #and is_on_floor():
+		apply_impulse(Vector3(0, JUMP_VELOCITY, 0))
 		
-func impart_cardinal_movement():
+func impart_cardinal_movement(delta: float):
 	var input_dir := Input.get_vector("move_left", "move_right", "move_back", "move_forward")
-	var direction := (player.transform.basis * Vector3(-input_dir.x, 0, input_dir.y)).normalized()
+	var input_dir_3d := Vector3(input_dir.x, 0, input_dir.y)
+	#var direction := (player.transform.basis * Vector3(-input_dir.x, 0, input_dir.y)).normalized()
 
-	if direction and is_on_floor:
-		velocity.x = direction.x * SPEED
-		velocity.z = direction.z * SPEED
-	elif(!is_grappled && is_on_floor()):
-		velocity.x = move_toward(velocity.x, 0, SPEED)
-		velocity.z = move_toward(velocity.z, 0, SPEED)
+	if input_dir_3d:
+		var target_velocity     = input_dir_3d * SPEED
+		var velocity_correction = target_velocity - linear_velocity
+		var correction_impluse = update(velocity_correction, delta) * 0.001
+		print("applying impulse ", correction_impluse)
+		apply_central_impulse(correction_impluse)
+	#elif(!is_grappled && is_on_floor()):
+#		velocity.x = move_toward(velocity.x, 0, SPEED)
+#		velocity.z = move_toward(velocity.z, 0, SPEED)
+
+var p: float = 1
+var i: float = 0.1
+var d: float = 1
+
+var _prev_correction: Vector3
+var _correction_integral: Vector3
+func update(corretion: Vector3, delta: float) -> Vector3:
+	_correction_integral += corretion * delta
+	var error_derivative = (corretion - _prev_correction) / delta
+	_prev_correction = corretion
+	return p* corretion + i* _correction_integral + d* error_derivative
 
 func line(pos1: Vector3, pos2: Vector3, color = Color.RED, persist_ms = 0):
 	var mesh_instance := MeshInstance3D.new()

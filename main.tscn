@@ -1,31 +1,42 @@
-[gd_scene load_steps=9 format=3 uid="uid://dbygoieru6ugs"]
+[gd_scene load_steps=15 format=3 uid="uid://dbygoieru6ugs"]
 
-[ext_resource type="PackedScene" uid="uid://d24f7pwsuvsdk" path="res://player.tscn" id="1_k6bmw"]
+[ext_resource type="Script" path="res://src/player.gd" id="1_6y6n3"]
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_bhmmv"]
-size = Vector3(60, 2, 60)
+[sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_5x56k"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_kyuva"]
 size = Vector3(600, 2, 600)
 
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_pfnju"]
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_ultgv"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_b0htc"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_f8e8l"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_5wuqv"]
+radius = 0.998469
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_hvhii"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_85bhq"]
+friction = 0.0
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_ao2t1"]
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_21hit"]
+
 [sub_resource type="SphereShape3D" id="SphereShape3D_f0dxa"]
 
 [sub_resource type="SphereMesh" id="SphereMesh_hkjsm"]
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_6cdip"]
-
-[sub_resource type="BoxMesh" id="BoxMesh_nhfqf"]
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_2nre2"]
-metallic = 1.0
-metallic_specular = 1.0
 
 [node name="Main" type="Node"]
 
 [node name="Ground" type="StaticBody3D" parent="."]
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Ground"]
-shape = SubResource("BoxShape3D_bhmmv")
+shape = SubResource("WorldBoundaryShape3D_5x56k")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Ground"]
 mesh = SubResource("BoxMesh_kyuva")
@@ -34,26 +45,109 @@ skeleton = NodePath("../CollisionShape3D")
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, -0.67066, 0.741765, 0, -0.741765, -0.67066, 0, 4.34756, 0)
 
-[node name="Player" parent="." instance=ExtResource("1_k6bmw")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.1, 0)
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(-4.37114e-08, -0.761538, 0.64812, 0, 0.64812, 0.761538, -1, 3.32879e-08, -2.83302e-08, 11.1138, 14.4557, -0.343403)
 
-[node name="grapple_target" type="CollisionShape3D" parent="Player"]
+[node name="Link1" type="RigidBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.21146, 4.04161, 0)
+
+[node name="CollisionShape3D2" type="CollisionShape3D" parent="Link1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.101473, 0)
+shape = SubResource("CapsuleShape3D_pfnju")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Link1/CollisionShape3D2"]
+mesh = SubResource("CapsuleMesh_ultgv")
+
+[node name="Link2" type="RigidBody3D" parent="Link1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.15383, 0)
+
+[node name="CollisionShape3D2" type="CollisionShape3D" parent="Link1/Link2"]
+shape = SubResource("CapsuleShape3D_pfnju")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Link1/Link2/CollisionShape3D2"]
+mesh = SubResource("CapsuleMesh_ultgv")
+
+[node name="2-3 Joint" type="PinJoint3D" parent="Link1/Link2"]
+node_a = NodePath("..")
+node_b = NodePath("../../Link3")
+params/bias = 0.5
+
+[node name="Link3" type="RigidBody3D" parent="Link1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.16658, 0)
+
+[node name="CollisionShape3D2" type="CollisionShape3D" parent="Link1/Link3"]
+shape = SubResource("CapsuleShape3D_pfnju")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Link1/Link3/CollisionShape3D2"]
+mesh = SubResource("CapsuleMesh_ultgv")
+
+[node name="3-4 Joint" type="PinJoint3D" parent="Link1/Link3"]
+node_a = NodePath("..")
+node_b = NodePath("../../Link4")
+params/bias = 0.5
+
+[node name="Link4" type="RigidBody3D" parent="Link1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.030365, 6.1895, 0)
+
+[node name="CollisionShape3D2" type="CollisionShape3D" parent="Link1/Link4"]
+shape = SubResource("CapsuleShape3D_pfnju")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Link1/Link4/CollisionShape3D2"]
+mesh = SubResource("CapsuleMesh_ultgv")
+
+[node name="1-2 Joint" type="PinJoint3D" parent="Link1"]
+node_a = NodePath("..")
+node_b = NodePath("../Link2")
+params/bias = 0.5
+
+[node name="1-Body Joint" type="PinJoint3D" parent="Link1"]
+node_a = NodePath("..")
+node_b = NodePath("../../RigidBody3D")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.12554, 11.769, 0.0942173)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D"]
+shape = SubResource("BoxShape3D_b0htc")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="StaticBody3D"]
+mesh = SubResource("BoxMesh_f8e8l")
+skeleton = NodePath("../CollisionShape3D")
+
+[node name="StaticBody-4 Joint" type="PinJoint3D" parent="StaticBody3D"]
+node_a = NodePath("..")
+node_b = NodePath("../../Link1/Link4")
+params/bias = 0.5
+
+[node name="RigidBody3D" type="RigidBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.21356, 2.10853, -0.0768838)
+
+[node name="CollisionShape3D2" type="CollisionShape3D" parent="RigidBody3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.21356, 2.10854, -0.0768838)
+top_level = true
+shape = SubResource("CylinderShape3D_5wuqv")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RigidBody3D"]
+mesh = SubResource("CylinderMesh_hvhii")
+
+[node name="Player2" type="RigidBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.914, 4, 0)
+physics_material_override = SubResource("PhysicsMaterial_85bhq")
+script = ExtResource("1_6y6n3")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Player2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -2.02595, 0)
+shape = SubResource("CapsuleShape3D_ao2t1")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Player2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -2.02595, 0)
+mesh = SubResource("CapsuleMesh_21hit")
+
+[node name="grapple_target" type="CollisionShape3D" parent="."]
 auto_translate_mode = 2
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.31748, 99.3831, 5.94123)
 top_level = true
 shape = SubResource("SphereShape3D_f0dxa")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Player/grapple_target"]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="grapple_target"]
 mesh = SubResource("SphereMesh_hkjsm")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.29433, 140.456, 5.64791)
-shape = SubResource("BoxShape3D_6cdip")
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="CollisionShape3D"]
-transform = Transform3D(5, 0, 0, 0, 1, 0, 0, 0, 5, 0, -40.6984, 0)
-mesh = SubResource("BoxMesh_nhfqf")
-surface_material_override/0 = SubResource("StandardMaterial3D_2nre2")
-
-[node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(-4.37114e-08, -0.761538, 0.64812, 0, 0.64812, 0.761538, -1, 3.32879e-08, -2.83302e-08, 10.5125, 117.292, 6.0951)
