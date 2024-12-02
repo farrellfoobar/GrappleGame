@@ -46,6 +46,9 @@ shape = SubResource("SphereShape3D_f0dxa")
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Player/grapple_target"]
 mesh = SubResource("SphereMesh_hkjsm")
 
+[node name="XRCamera3D" type="XRCamera3D" parent="Player"]
+transform = Transform3D(-1, 0, 8.74228e-08, 0, 1, 0, -8.74228e-08, 0, -1, 0, 2.34658, -1.86815)
+
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.29433, 140.456, 5.64791)
 shape = SubResource("BoxShape3D_6cdip")
@@ -57,3 +60,4 @@ surface_material_override/0 = SubResource("StandardMaterial3D_2nre2")
 
 [node name="Camera3D" type="Camera3D" parent="."]
 transform = Transform3D(-4.37114e-08, -0.761538, 0.64812, 0, 0.64812, 0.761538, -1, 3.32879e-08, -2.83302e-08, 10.5125, 117.292, 6.0951)
+current = true

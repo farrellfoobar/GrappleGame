@@ -39,14 +39,16 @@ func impart_velocity_from_inputs() -> void:
 var is_grappled: bool          = false
 var grapple_rest_length: float = 0
 var grapple_extension: float   = 0
+var last_grapple_extension: float   = 0
 var pull_vector: Vector3
 var tension_force: Vector3
 var mesh: ImmediateMesh = ImmediateMesh.new()
 func impart_velocity_from_grapple(delta: float) -> void:
 	if(is_grappled):
 		pull_vector = get_grapple_path().normalized()
+		last_grapple_extension = grapple_extension
 		grapple_extension = get_grapple_path().length() - grapple_rest_length
-		if(grapple_extension > 0):
+		if(grapple_extension > 0 && grapple_extension > last_grapple_extension):
 			tension_force = get_grapple_path() * (get_gravity().length()/get_grapple_path().length())
 			tension_force = tension_force * (1 + sin(pull_vector.angle_to(get_gravity())))
 			#print("t, e: ", tension_force.y, ", ", grapple_extension, ", ", grapple_rest_length)
