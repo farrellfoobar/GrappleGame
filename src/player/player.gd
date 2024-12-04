@@ -34,6 +34,10 @@ const JUMP_SPEED = 5
 
 @export var current_animation := ANIMATIONS.WALK
 
+# This script is a very refactored version of https://github.com/godotengine/tps-demo/blob/master/player/player.gd
+# Other than the ability to jump while walking it should be 1:1 with that player, the only known issue being that while
+# in the air and not aiming, you can still change your direction for some reason. Doesnt work while aming tho idk
+
 func _ready():
 	orientation = player_model.global_transform
 	orientation.origin = Vector3()
@@ -42,55 +46,61 @@ func _ready():
 func _physics_process(delta: float):
 	apply_input(delta)
 
-var airborne_time: float     = 100
-var orientation: Transform3D = Transform3D()
-var root_motion: Transform3D = Transform3D()
-var motion: Vector2          = Vector2()
 func apply_input(delta: float):
+	rotate_player_from_input(delta)
+	do_jump_logic(delta)
+	apply_input_to_character(delta)
 	animate_player()
-	motion = motion.lerp(player_input.motion, MOTION_INTERPOLATE_SPEED * delta)
+	handle_shoot()
+	move_and_slide()
 
-	if player_input.aiming:
-		if player_input.shooting and fire_cooldown.time_left == 0:
-			shoot_bullet()
-		
+
+func rotate_player_from_input(delta: float):
 	if player_input.aiming:
 		rotate_character_with_locked_camera(delta)
 	else:
 		rotate_character_with_independent_camera(delta)
 
+
+var airborne_time: float     = 100
+func do_jump_logic(delta: float):
 	if is_on_floor():
-		root_motion = Transform3D(animation_tree.get_root_motion_rotation(), animation_tree.get_root_motion_position())
-		if airborne_time > MIN_AIR_TIME_FOR_LANDING_ANIMATION:
-			land.rpc()
+		if is_landing():
 			player_input.jumping = false
 		elif player_input.jumping:
 			velocity.y = JUMP_SPEED
-			jump.rpc()
 		airborne_time = 0
 	else:
 		airborne_time += delta
+	
 
-	# Apply root motion to orientation.
+var root_motion: Transform3D       = Transform3D()
+var input_motion: Vector2          = Vector2()
+var animation_tree_motion: Vector2 = Vector2()
+var orientation: Transform3D = Transform3D()
+func apply_input_to_character(delta: float):
+	input_motion = input_motion.lerp(player_input.motion, MOTION_INTERPOLATE_SPEED * delta)
+	update_animation_tree_root_motion(input_motion)
+
+	if is_on_floor():
+		root_motion = Transform3D(animation_tree.get_root_motion_rotation(), animation_tree.get_root_motion_position())
+
 	orientation *= root_motion
 
-	# note to self; this function is still too long and I think most of the below should be pulled into another method
-	#this function is also doing too much, trying to handle move/anim states and motion, already pulled a lot out
-
-	var horizontal_velocity = orientation.origin / delta
+	var horizontal_velocity: Vector3 = orientation.origin / delta
 	velocity.x = horizontal_velocity.x
-	velocity.z = horizontal_velocity.z
 	velocity += gravity * delta
-	move_and_slide()
+	velocity.z = horizontal_velocity.z
 
 	orientation.origin = Vector3() # Clear accumulated root motion displacement (was applied to speed).
 	orientation = orientation.orthonormalized() # Orthonormalize orientation.
 
 	player_model.global_transform.basis = orientation.basis
 
+	
 func animate_player():
 	if is_on_floor():
-		if airborne_time > MIN_AIR_TIME_FOR_LANDING_ANIMATION:
+		if is_landing():
 			land.rpc()
 		elif player_input.jumping:
 			jump.rpc()
@@ -103,6 +113,18 @@ func animate_player():
 			animate(ANIMATIONS.JUMP_UP)
 		else:
 			animate(ANIMATIONS.JUMP_DOWN)
+
+func is_landing() -> bool:
+	return is_on_floor() and airborne_time > MIN_AIR_TIME_FOR_LANDING_ANIMATION
+
+func handle_shoot():
+	if player_input.aiming:
+		if player_input.shooting and fire_cooldown.time_left == 0:
+			shoot_bullet()
+
+
+func update_animation_tree_root_motion(input: Vector2):
+	animation_tree_motion = input	
 	
 func rotate_character_with_independent_camera(delta: float):
 	var camera_basis : Basis = player_input.get_camera_rotation_basis()
@@ -113,7 +135,7 @@ func rotate_character_with_independent_camera(delta: float):
 	camera_z = camera_z.normalized()
 	camera_x.y = 0
 	camera_x = camera_x.normalized()
-	var walk_target = camera_x * motion.x + camera_z * motion.y
+	var walk_target = camera_x * input_motion.x + camera_z * input_motion.y
 	if walk_target.length() > 0.001:
 		var current_basis = orientation.basis.get_rotation_quaternion()
 		var walk_target_basis = Transform3D().looking_at(walk_target, Vector3.UP).basis.get_rotation_quaternion()
@@ -156,7 +178,7 @@ func animate(anim: int):
 		# Change aim according to camera rotation.
 		animation_tree["parameters/aim/add_amount"] = player_input.get_aim_rotation()
 		# The animation's forward/backward axis is reversed.
-		animation_tree["parameters/strafe/blend_position"] = Vector2(motion.x, -motion.y)
+		animation_tree["parameters/strafe/blend_position"] = Vector2(animation_tree_motion.x, -animation_tree_motion.y)
 
 	elif anim == ANIMATIONS.WALK:
 		# Aim to zero (no aiming while walking).
@@ -164,7 +186,7 @@ func animate(anim: int):
 		# Change state to walk.
 		animation_tree["parameters/state/transition_request"] = "walk"
 		# Blend position for walk speed based checked motion.
-		animation_tree["parameters/walk/blend_position"] = Vector2(motion.length(), 0)
+		animation_tree["parameters/walk/blend_position"] = Vector2(animation_tree_motion.length(), 0)
 
 	
 @rpc("call_local")
