@@ -1,6 +1,6 @@
 extends CharacterBody3D
 
-const BULLET_VELOCITY = 20
+const BULLET_VELOCITY = 2000
 
 var time_alive = 5
 var hit = false
@@ -9,7 +9,10 @@ var hit = false
 @onready var collision_shape = $CollisionShape3D
 @onready var omni_light = $OmniLight3D
 
+var inherited_momentum
+
 func _ready():
+	inherited_momentum.y = 0 # dont inherit y, not affected by gravity
 	if not multiplayer.is_server():
 		set_physics_process(false)
 		collision_shape.disabled = true
@@ -22,7 +25,7 @@ func _physics_process(delta):
 	if time_alive < 0:
 		hit = true
 		explode.rpc()
-	var col = move_and_collide(-delta * BULLET_VELOCITY * transform.basis.z)
+	var col = move_and_collide(-delta * BULLET_VELOCITY * transform.basis.z + inherited_momentum)
 	if col:
 		var collider = col.get_collider()
 		if collider and collider.has_method("hit"):

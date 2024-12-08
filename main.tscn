@@ -39,7 +39,7 @@ mesh = SubResource("BoxMesh_7dqpp")
 shape = SubResource("BoxShape3D_6gkyk")
 
 [node name="Ceiling" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 30, 128.379)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 50, 128.379)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Ceiling"]
 mesh = SubResource("BoxMesh_7dqpp")

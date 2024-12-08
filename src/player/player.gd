@@ -9,7 +9,7 @@ const ROTATION_INTERPOLATE_SPEED = 10
 
 const MIN_AIRBORNE_TIME = 0.1
 const MIN_AIR_TIME_FOR_LANDING_ANIMATION = 0.5
-const JUMP_SPEED = 8
+const JUMP_SPEED = 16
 
 
 @onready var initial_position = transform.origin
@@ -53,10 +53,11 @@ func _physics_process(delta: float):
 func apply_input(delta: float):
 	rotate_player_from_input(delta)
 	do_jump_logic(delta)
+	handle_sprint()
 	apply_input_to_character(delta)
 	#print("v1: ", velocity)
 	animate_player()
-	#handle_shoot()
+	handle_shoot()
 	impart_velocity_from_grapple(delta)
 	#print("v2: ", velocity)
 	move_and_slide()
@@ -77,14 +78,29 @@ func do_jump_logic(delta: float):
 		elif player_input.jumping:
 			velocity.y = JUMP_SPEED
 		airborne_time = 0
+	elif is_grappled and Input.is_action_just_pressed("jump"):
+		is_grappled = false
+		velocity.y += JUMP_SPEED
+		root_motion = Transform3D(animation_tree.get_root_motion_rotation(), animation_tree.get_root_motion_position())
+		orientation *= root_motion
+		var horizontal_velocity: Vector3 = orientation.origin / delta
+		velocity.x += horizontal_velocity.x * 10
+		velocity.z += horizontal_velocity.z * 10
 	else:
 		airborne_time += delta
 	
+		
+func handle_sprint(): 
+	if Input.is_action_pressed("sprint"):
+		sprint_multiplier = 2
+	else:
+		sprint_multiplier = 1
 
 var root_motion: Transform3D       = Transform3D()
 var input_motion: Vector2          = Vector2()
 var animation_tree_motion: Vector2 = Vector2()
 var orientation: Transform3D = Transform3D() # not just used here, side affect in other methods
+var sprint_multiplier: int = 1;
 func apply_input_to_character(delta: float):
 	input_motion = input_motion.lerp(player_input.motion, MOTION_INTERPOLATE_SPEED * delta)
 	update_animation_tree_root_motion(input_motion)
@@ -94,8 +110,8 @@ func apply_input_to_character(delta: float):
 		root_motion = Transform3D(animation_tree.get_root_motion_rotation(), animation_tree.get_root_motion_position())
 		orientation *= root_motion
 		var horizontal_velocity: Vector3 = orientation.origin / delta
-		velocity.x = horizontal_velocity.x
-		velocity.z = horizontal_velocity.z
+		velocity.x = horizontal_velocity.x * sprint_multiplier
+		velocity.z = horizontal_velocity.z * sprint_multiplier
 
 	orientation.origin = Vector3() # Clear accumulated root motion displacement (was applied to speed).
 	orientation = orientation.orthonormalized() # Orthonormalize orientation.
@@ -154,11 +170,18 @@ func get_basis_for_transform(from: Quaternion, to: Quaternion, delta: float) -> 
 	return Basis(from.slerp(to, delta * ROTATION_INTERPOLATE_SPEED))
 
 
+func handle_shoot():
+	if player_input.aiming:
+		if player_input.shooting and fire_cooldown.time_left == 0:
+			shoot_bullet()
+	
+		
 func shoot_bullet():
 	var shoot_origin = shoot_from.global_transform.origin
 	var shoot_dir = (player_input.shoot_target - shoot_origin).normalized()
 
 	var bullet = preload("res://src/player/bullet/bullet.tscn").instantiate()
+	bullet.inherited_momentum = self.velocity
 	get_parent().add_child(bullet, true)
 	bullet.global_transform.origin = shoot_origin
 	# If we don't rotate the bullets there is no useful way to control the particles ..
